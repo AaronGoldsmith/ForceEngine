@@ -1,40 +1,59 @@
 <!DOCTYPE html>
 
-<html>
+<!-- 
+	Please Note:
+			CURRENTLY ONLY IMPLEMENTED FOR CHROME 
+
+-->
+
+
+<html> 
 	<style> 	
 		div{ margin-top:10px; font-size: .9em;}
+		label{font-size:.8em;}
 		input[type='number']{width:25px;}
-		#info{}
-		#clickSetting{}
-		.container{position:inherit;float:right; left:850px;padding:10px; width:500px; height:600px; }
+		input[type=range][orient=vertical]{writing-mode: bt-lr; -webkit-appearance: slider-vertical;}
+		#lx{position:absolute; bottom:55px; left:70px;} 
+		#ly{position: absolute; bottom:105px; left:182px;}
+		#fx{margin-top:50px;}
+		#fy{position:absolute; bottom:-30px; left:120px;}
+		.container{position:inherit;float:left; margin-left:50px;padding:10px;height:600px; }
+		#clickSetting{ width:500px; float:left;}
+		#forces{float:left;}
 	 </style>
-	<canvas id ="canvas" width="830px" height="600px" style="background-color:#333;border:1px solid black"></canvas>
+	<canvas id ="canvas" width="830px" height="600px" style="background-color:#333"></canvas>
 	
 	
 	<body>
+	</p>
+		<div id = "forces">
+		<p  style="width: 300px;"><b>Forces</b></p>
+			<label id='lx'>X</label><input id="fx"  type="range" min="-20" max="20" value = "0"></input> 
+			<label id="ly">Y</label><input id="fy" type="range" min="-20" max="20" value = "0" orient ="vertical"></input>
+			<button style ="margin-left:100px"onclick="switchReset()">Clear Forces</button>
+		</div>
 		<div class="container">
-			<p>Force X<input id="fx" type="range" min="-20" max="20" value = "0"></input> 
-			Force Y<input id="fy" type="range" min="-20" max="20" value = "0"></input>
-			<button onclick="switchReset()">clc</button>
+			
 
 			<div id = 'info'>
 				<b>Display Rays:</b>
 				Yes <input id= "Y" type = "radio" name = "dr" checked>
 	  			No <input id= "N" type = "radio" name = "dr" > </p>
 
-	  			<b>Display Force Vector Map:</b>
+	  			<b>Display Force Vector Field Map:</b>
 				Yes <input id= "Y1" type = "radio" name = "vm" checked>
 	  			No <input id= "N1" type = "radio" name = "vm" > 
 
 	  		</div>
 
 	  		<div id = "clickSetting">
-	  			Size of Ray <input id="rayS" type = "number" value = "70" max="200"></input></p>
-	  			<b>Add Ball Mass:</b>
-	  			Magnetic Force <input id= "Y2" type = "radio" name = "bm"  >
+	  			<b>Click to add:</b>
+	  			Pull Force <input id= "Y2" type = "radio" name = "bm"  >
 	  			Point Mass <input id= "N2" type = "radio" name = "bm" checked> </p>
+	  			Magnitude of Force <input id="rayS" type = "number" value = "70" max="200"></input></p>
+
 	  			</p><button onclick="addBalls()">Generate 100 balls</button>
-	  				<button onclick="randomizeF()">Randomize Forces</button>
+	  				<button id = "rC" button onclick="randomizeF()">Randomize Forces</button>
 	  			</p>
 	  			</p><button onclick="reset()" id = "reset" style = "margin-top:5px;">Reset</button>
 
@@ -42,12 +61,7 @@
 
 	  	</div>
 		<script>
-
-		/*
-
-
-			take stuff out of an interval and just call the method adjustForce when we get a bool that it change
-		*/
+			// to do: create anotehr canvas that will replace the x,y forces and have just one point on an x,y axis enclosed sqr
 			var can = document.getElementById("canvas"),
 			ctx = can.getContext("2d"),
 			eLeft = can.offsetLeft,
@@ -57,8 +71,6 @@
 			var HPts = [];
 			var VPts = [];
 			var BezCurvs = [];
-			var changeForce = false;
-			var colors = [];
 			var checkChange = setInterval(adjustForce,100);
 			var checkCord = setInterval(checkLoc,100);
 			var lstClick = [];
@@ -96,16 +108,20 @@
 					drawRays();
 
 			}
+
 			function reset()
 			{
 				BezCurvs.length = 0;
 				lstClick.length = 0;
 				ballClick.length = 0;
 			}
+
 			function randomize()
 			{
+
 				var fx1 = document.getElementById("fx").value;
 				var fy1 = document.getElementById("fy").value;
+
 
 				var ran = Math.floor(Math.random()*3);
 				var ran2 = -Math.floor(Math.random()*3);
@@ -132,10 +148,12 @@
 			{
 				if(!randomizing)
 				{
+					document.getElementById("rC").innerHTML = "Stop Randomizing";
 					randomizing=true;
 					alarm = setInterval(randomize,1000);
 				}
 				else{
+					document.getElementById("rC").innerHTML = "Randomize Forces";
 					clearInterval(alarm);
 				}
 			}
@@ -185,8 +203,6 @@
 				if(fx!=lastfx || fy!=lastfy){
 					if(fx!=lastfx){lastfx=fx;}
 					if(fy!=lastfy){lastfy=fy;}
-
-					changeForce = true;
 				}
 
 			}
@@ -334,6 +350,7 @@
 			function connectPts()
 			{//put global forces in here
 				var raysize = parseInt(document.getElementById("rayS").value);
+				console.log(raysize);
 				if(!isNaN(raysize)){raysize=70}
 				ctx.clearRect(eLeft,eTop,can.width,can.height);
 				var rand = Math.floor(Math.random()*3);
@@ -349,6 +366,10 @@
 						if(lstClick.length>0)
 						{
 							for(var j = 0;j<lstClick.length;j++){
+								/*  
+									I used a loop here which first stored the distances from the current 
+									local point to each of the center points of the points of pull forces
+								*/
 								var d1 = getDistance(BezCurvs[i].pt2,lstClick[j]);
 								var d2 = getDistance(BezCurvs[i].pt3,lstClick[j]);
 								if(d1<=raysize || d2<=raysize){
